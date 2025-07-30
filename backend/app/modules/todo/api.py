@@ -1,19 +1,24 @@
+from typing import List
 from fastapi import APIRouter
+
+from app.modules.todo.schema import TodoResponse
 
 todos = [
     {
         "id": 1,
-        "item": "Read a book"
+        "item": "Read a book",
+        "priority": 0,
     },
     {
         "id": 2,
-        "item": "Code project AZ"
+        "item": "Code project AZ",
+        "priority": 1,
     }
 ]
 
 api = APIRouter()
 
-@api.get("/todo")
+@api.get("/todo", response_model=List[TodoResponse])
 async def get_todos() -> dict:
     return { "data": todos }
 
