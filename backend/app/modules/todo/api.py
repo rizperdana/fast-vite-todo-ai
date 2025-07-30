@@ -1,4 +1,4 @@
-from app.main import app
+from fastapi import APIRouter
 
 todos = [
     {
@@ -11,13 +11,14 @@ todos = [
     }
 ]
 
+api = APIRouter()
 
-@app.get("/todo", tags=["todos"])
+@api.get("/todo")
 async def get_todos() -> dict:
     return { "data": todos }
 
 
-@app.post("/todo", tags=["todos"])
+@api.post("/todo")
 async def add_todo(todo: dict) -> dict:
     for t in todos:
         if todo["id"] == t["id"]:
@@ -30,7 +31,7 @@ async def add_todo(todo: dict) -> dict:
     return {"data": {"Todo Added"}}
 
 
-@app.put("/todo/{id}", tags=["todos"])
+@api.put("/todo/{id}")
 async def update_todo(id: int, body: dict)  -> dict:
     for todo in todos:
         if int(todo["id"]) == id:
@@ -44,7 +45,7 @@ async def update_todo(id: int, body: dict)  -> dict:
     }
 
 
-@app.delete("/todo/{id}", tags=["todos"])
+@api.delete("/todo/{id}")
 async def delete_todo(id: int) -> dict:
     for todo in todos:
         if int(todo["id"]) == id:
