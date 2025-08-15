@@ -2,10 +2,12 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
 
+
 class TodoCreate(BaseModel):
-    id: int = Field(description="Unique identifier for the todo item", example=1)
-    item: str = Field(min_length=1, max_length=200, description="Todo item description", example="Buy groceries")
-    priority: Optional[str] = Field(None, description="Priority level", example="high")
+    id: int
+    item: str
+    priority: Optional[str]
+    created_at: datetime
 
     class Config:
         # This enables better documentation in FastAPI
@@ -13,7 +15,8 @@ class TodoCreate(BaseModel):
             "example": {
                 "id": 1,
                 "item": "Complete FastAPI tutorial",
-                "priority": "medium"
+                "priority": "medium",
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%s")
             }
         }
 

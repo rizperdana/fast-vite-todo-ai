@@ -7,12 +7,12 @@ todos = [
     {
         "id": 1,
         "item": "Read a book",
-        "priority": 0,
+        "priority": "low",
     },
     {
         "id": 2,
         "item": "Code project AZ",
-        "priority": 1,
+        "priority": "high",
     }
 ]
 

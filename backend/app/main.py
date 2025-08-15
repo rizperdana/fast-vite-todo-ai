@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from app.modules.routers import routers
-from app.core.config import Settings
+from app.core.config import setting
 
 # from tortoise import Tortoise, generate_config
 # from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
@@ -45,7 +45,6 @@ from app.core.config import Settings
 #             yield
 #             # app teardown
 #         # db connections closed
-
 app = FastAPI()
 
 origins = [
@@ -61,7 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(routers, prefix="/api/v1")
+app.include_router(routers, prefix=setting.API_V1_STR)
 
 @app.get("/", tags=["root"])
 async def read_root() -> dict:
