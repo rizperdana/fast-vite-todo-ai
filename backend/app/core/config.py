@@ -1,6 +1,14 @@
 import os
-from typing import Literal
+from typing import Annotated, Any, Literal
+from pydantic import AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+def parse_cors(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",")]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
@@ -10,11 +18,24 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore"
     )
+
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
+
     SECRET_KEY: str = "21jkh3lkj1h2j2k1h3jh$%#%^$%^&$"
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     DOMAIN: str = "localhost"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    PROJECT_NAME: str = "Boilerplate fast vite"
+
+    # Redis
+    REDIS_HOST: str = "redis"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str | None = None
+    REDIS_DB: int = 0
+    RFQ_DUPLICATE_EXPIRY_HOURS: int = 24 * 7  # 1 week
 
 
-setting = Settings()
+settings = Settings()

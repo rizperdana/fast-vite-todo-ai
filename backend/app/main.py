@@ -1,66 +1,78 @@
 import os
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
+from fastapi.routing import APIRoute
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination
 
+from asgi_correlation_id import CorrelationIdMiddleware
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+from starlette.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
+
 from app.modules.routers import routers
-from app.core.config import setting
+from app.core.config import settings
+from app.core.redis import get_redis_connection
+from app.scheduler import init_scheduler
 
 # from tortoise import Tortoise, generate_config
 # from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
 
+def custom_generate_unique_id(route: APIRoute) -> str:
+    return f"{route.tags[0]}-{route.name}"
 
-# @asynccontextmanager
-# async def lifespan_test(app: FastAPI) -> AsyncGenerator[None, None]:
-#     config = generate_config(
-#         os.getenv("TORTOISE_TEST_DB", "sqlite://:memory:"),
-#         app_modules={"models": ["models"]},
-#         testing=True,
-#         connection_label="models",
-#     )
-#     async with RegisterTortoise(
-#         app=app,
-#         config=config,
-#         generate_schemas=True,
-#         _create_db=True,
-#     ):
-#         # db connected
-#         yield
-#         # app teardown
-#     # db connections closed
-#     await Tortoise._drop_databases()
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # noqa: ARG001
+    # Initialize services
+    init_scheduler()
 
+    # Initialize Redis connection
+    try:
+        redis_conn = get_redis_connection()
+        await redis_conn.ping()
+        app.state.redis = redis_conn
+        print("Redis connection established")
+    except Exception as e:
+        print(f"Redis connection failed: {e}")
 
-# @asynccontextmanager
-# async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-#     if getattr(app.state, "testing", None):
-#         async with lifespan_test(app) as _:
-#             yield
-#     else:
-#         # app startup
-#         async with register_orm(app):
-#             # db connected
-#             yield
-#             # app teardown
-#         # db connections closed
-app = FastAPI()
+    yield
 
-origins = [
-    "http://localhost:5173",
-    "localhost:5173"
-]
+    # Close Redis connection
+    if hasattr(app.state, "redis"):
+        await app.state.redis.close()
+        print("Redis connection closed")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    lifespan=lifespan,
+    openapi_url=(
+        f"{settings.API_V1_STR}/openapi.json"
+        if settings.ENVIRONMENT != "production"
+        else None
+    ),
+    docs_url="/docs",
+    redoc_url="/redoc",
+    generate_unique_id_function=custom_generate_unique_id,
+    default_response_class=ORJSONResponse,
 )
+add_pagination(app)
 
-app.include_router(routers, prefix=setting.API_V1_STR)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(CorrelationIdMiddleware)
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+app.include_router(routers, prefix=settings.API_V1_STR)
 
 @app.get("/", tags=["root"])
 async def read_root() -> dict:

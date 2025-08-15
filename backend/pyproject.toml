@@ -6,7 +6,7 @@ authors = [
     {name = "Rizki Perdana",email = "perdana.rizki16@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "^3.10"
 dependencies = [
     "fastapi (>=0.116.1,<0.117.0)",
     "uvicorn (>=0.35.0,<0.36.0)",
@@ -15,6 +15,12 @@ dependencies = [
     "aerich (>=0.9.1,<0.10.0)",
     "websocket (>=0.2.1,<0.3.0)",
     "pydantic-settings (>=2.10.1,<3.0.0)",
+    "apscheduler (>=3.11.0,<4.0.0)",
+    "redis (>=6.4.0,<7.0.0)",
+    "loguru (>=0.7.3,<0.8.0)",
+    "asgi-correlation-id (>=4.3.4,<5.0.0)",
+    "fastapi-pagination (>=0.13.3,<0.14.0)",
+    "orjson (>=3.11.2,<4.0.0)",
 ]
 
 
