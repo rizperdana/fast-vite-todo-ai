@@ -1,12 +1,9 @@
-import os
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
 from asgi_correlation_id import CorrelationIdMiddleware
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from starlette.middleware.cors import CORSMiddleware
@@ -20,8 +17,10 @@ from app.scheduler import init_scheduler
 # from tortoise import Tortoise, generate_config
 # from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
 
+
 def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.tags[0]}-{route.name}"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
@@ -43,6 +42,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     if hasattr(app.state, "redis"):
         await app.state.redis.close()
         print("Redis connection closed")
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -74,6 +74,14 @@ if settings.BACKEND_CORS_ORIGINS:
 
 app.include_router(routers, prefix=settings.API_V1_STR)
 
+# register_tortoise(
+#     app,
+#     db_url=tortoise_config.db_url,
+#     generate_schemas=tortoise_config.generate_schemas,
+#     modules=tortoise_config.modules,
+# )
+
+
 @app.get("/", tags=["root"])
 async def read_root() -> dict:
-    return {"message": "Welcome to todo list API!"}
+    return {"message": f"Welcome to {settings.PROJECT_NAME} API!"}
