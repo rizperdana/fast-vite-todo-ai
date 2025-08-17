@@ -6,7 +6,7 @@ authors = [
     {name = "Rizki Perdana",email = "perdana.rizki16@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 dependencies = [
     "fastapi (>=0.116.1,<0.117.0)",
     "uvicorn (>=0.35.0,<0.36.0)",
@@ -23,7 +23,6 @@ dependencies = [
     "orjson (>=3.11.2,<4.0.0)",
     "ruff (>=0.12.9,<0.13.0)",
     "pre-commit (>=4.3.0,<5.0.0)",
-    "tortoise (>=0.1.1,<0.2.0)",
 ]
 
 

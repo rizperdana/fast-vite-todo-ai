@@ -3,6 +3,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",")]
@@ -10,13 +11,14 @@ def parse_cors(v: Any) -> list[str] | str:
         return v
     raise ValueError(v)
 
+
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
         env_file_encoding="utf-8",
         env_ignore_empty=True,
-        extra="ignore"
+        extra="ignore",
     )
 
     BACKEND_CORS_ORIGINS: Annotated[
@@ -29,13 +31,22 @@ class Settings(BaseSettings):
     DOMAIN: str = "localhost"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
     PROJECT_NAME: str = "Boilerplate fast vite"
+    GENERATE_SCHEMAS: bool = True
 
     # Redis
-    REDIS_HOST: str = "redis"
+    REDIS_HOST: str = "127.0.0.1"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str | None = None
     REDIS_DB: int = 0
     RFQ_DUPLICATE_EXPIRY_HOURS: int = 24 * 7  # 1 week
+
+    # Postgres
+    POSTGRES_HOST: str = "127.0.0.1"
+    POSTGRES_USER: str = "postgre"
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DATABASE: str | None = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DATABASE_SCHEMA: str | None = None
 
 
 settings = Settings()

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
@@ -14,8 +15,11 @@ from app.core.config import settings
 from app.core.redis import get_redis_connection
 from app.scheduler import init_scheduler
 
-# from tortoise import Tortoise, generate_config
-# from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
+from tortoise import Tortoise
+from tortoise.backends.base.config_generator import generate_config
+from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
+
+from backend.app.modules.models import TORTOISE_MODELS
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -23,11 +27,32 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # noqa: ARG001
-    # Initialize services
+async def lifespan_test(app: FastAPI):
+    config = generate_config(
+        os.getenv("TORTOISE_TEST_DB", "sqlite://:memory:"),
+        app_modules={"models": TORTOISE_MODELS},
+        testing=True,
+        connection_label="models",
+    )
+    async with RegisterTortoise(
+        app=app,
+        config=config,
+        generate_schemas=True,
+        _create_db=True,
+    ):
+        # db connected
+        yield
+        # app teardown
+    # db connections closed
+    await Tortoise._drop_databases()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize scheduler
     init_scheduler()
 
-    # Initialize Redis connection
+    # Initialize Redis
     try:
         redis_conn = get_redis_connection()
         await redis_conn.ping()
@@ -36,12 +61,31 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     except Exception as e:
         print(f"Redis connection failed: {e}")
 
+    # Initialize Tortoise ORM
+    try:
+        await Tortoise.init(
+            db_url=settings.POSTGRES_HOST,
+            modules={"models": TORTOISE_MODELS},  # adjust path
+        )
+        if settings.GENERATE_SCHEMAS:
+            await Tortoise.generate_schemas()
+        print("Tortoise ORM connected")
+    except Exception as e:
+        print(f"Tortoise ORM init failed: {e}")
+
     yield
 
-    # Close Redis connection
+    # Close Redis
     if hasattr(app.state, "redis"):
         await app.state.redis.close()
         print("Redis connection closed")
+
+    # Close Tortoise ORM
+    try:
+        await Tortoise.close_connections()
+        print("Tortoise ORM connection closed")
+    except Exception as e:
+        print(f"Tortoise ORM shutdown failed: {e}")
 
 
 app = FastAPI(
@@ -56,11 +100,15 @@ app = FastAPI(
     redoc_url="/redoc",
     generate_unique_id_function=custom_generate_unique_id,
     default_response_class=ORJSONResponse,
+    exception_handlers={
+        **tortoise_exception_handlers(),
+    },
 )
-add_pagination(app)
 
+add_pagination(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.add_middleware(CorrelationIdMiddleware)
+
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -73,13 +121,6 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(routers, prefix=settings.API_V1_STR)
-
-# register_tortoise(
-#     app,
-#     db_url=tortoise_config.db_url,
-#     generate_schemas=tortoise_config.generate_schemas,
-#     modules=tortoise_config.modules,
-# )
 
 
 @app.get("/", tags=["root"])

@@ -170,18 +170,6 @@ anyio = ">=4.0,<5.0"
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
-name = "atlastk"
-version = "0.13.5"
-description = "Easily bring your Python applications online with the world's lightest GUI toolkit."
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "atlastk-0.13.5-py3-none-any.whl", hash = "sha256:70184097f424a70d83822d783d46c7579427c4a6e7227ec54099368fd1fb2750"},
-    {file = "atlastk-0.13.5.tar.gz", hash = "sha256:1679045b090e1d411806a55a8bef26d6ca268c0ac31ad07dbd17052774316009"},
-]
-
-[[package]]
 name = "cffi"
 version = "1.17.1"
 description = "Foreign Function Interface for Python calling C code."
@@ -1285,21 +1273,6 @@ typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
-name = "tortoise"
-version = "0.1.1"
-description = "Turtle graphics on the web."
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "tortoise-0.1.1-py3-none-any.whl", hash = "sha256:bcb58a56d6796cad0db330104450df2caf2ea9e98d844bb2906274bd15c12804"},
-    {file = "tortoise-0.1.1.tar.gz", hash = "sha256:a4ebd69b152d266174b3b0f2a22e3fb8995101eb749d3114813a98f405ab10bb"},
-]
-
-[package.dependencies]
-atlastk = "*"
-
-[[package]]
 name = "tortoise-orm"
 version = "0.25.1"
 description = "Easy async ORM for python, built with relations in mind"
@@ -1533,4 +1506,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "b9180a3f5225da6697afba658c6a338d92447658293d9dc606398688a7a02568"
+content-hash = "afae531f4c0de494e23242f43179c282fb7cefdcd6d2d4cf5ec7ffd75de87e9a"
