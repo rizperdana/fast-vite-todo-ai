@@ -13,4 +13,4 @@ class Todo(models.Model):
 
     task = fields.CharField(max_length=500, null=False)
     detail = fields.TextField(null=True)
-    finished_at = fields.DatetimeField(null=True, default=False)
+    finished_at = fields.DatetimeField(null=True)

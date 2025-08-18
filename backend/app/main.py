@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
@@ -16,10 +15,9 @@ from app.core.redis import get_redis_connection
 from app.scheduler import init_scheduler
 
 from tortoise import Tortoise
-from tortoise.backends.base.config_generator import generate_config
 from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
 
-from backend.app.modules.models import TORTOISE_MODELS
+from backend.app.core.db import TORTOISE_ORM, get_db_conf_test
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -28,15 +26,9 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 @asynccontextmanager
 async def lifespan_test(app: FastAPI):
-    config = generate_config(
-        os.getenv("TORTOISE_TEST_DB", "sqlite://:memory:"),
-        app_modules={"models": TORTOISE_MODELS},
-        testing=True,
-        connection_label="models",
-    )
     async with RegisterTortoise(
         app=app,
-        config=config,
+        config=get_db_conf_test(),
         generate_schemas=True,
         _create_db=True,
     ):
@@ -63,12 +55,13 @@ async def lifespan(app: FastAPI):
 
     # Initialize Tortoise ORM
     try:
-        await Tortoise.init(
-            db_url=settings.POSTGRES_HOST,
-            modules={"models": TORTOISE_MODELS},  # adjust path
-        )
-        if settings.GENERATE_SCHEMAS:
-            await Tortoise.generate_schemas()
+        if getattr(app.state, "testing", None):
+            await lifespan_test(app)
+        else:
+            await Tortoise.init(TORTOISE_ORM)
+            if settings.GENERATE_SCHEMAS:
+                await Tortoise.generate_schemas()
+
         print("Tortoise ORM connected")
     except Exception as e:
         print(f"Tortoise ORM init failed: {e}")

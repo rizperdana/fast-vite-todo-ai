@@ -2,6 +2,10 @@ import os
 from typing import Annotated, Any, Literal
 from pydantic import AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -42,9 +46,9 @@ class Settings(BaseSettings):
 
     # Postgres
     POSTGRES_HOST: str = "127.0.0.1"
-    POSTGRES_USER: str = "postgre"
-    POSTGRES_PASSWORD: str | None = None
-    POSTGRES_DATABASE: str | None = "postgres"
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER")
+    POSTGRES_PASSWORD: str | None = os.getenv("POSTGRES_PASSWORD")
+    POSTGRES_DATABASE: str | None = os.getenv("POSTGRES_DATABASE")
     POSTGRES_PORT: int = 5432
     POSTGRES_DATABASE_SCHEMA: str | None = None
 
