@@ -42,6 +42,7 @@ async def lifespan_test(app: FastAPI):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize scheduler
+    print("Initiating scheduler")
     init_scheduler()
 
     # Initialize Redis
