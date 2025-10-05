@@ -17,7 +17,7 @@ from app.scheduler import init_scheduler
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
 
-from backend.app.core.db import TORTOISE_ORM, get_db_conf_test
+from app.core.db import TORTOISE_ORM, get_db_conf_test
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -57,7 +57,8 @@ async def lifespan(app: FastAPI):
     # Initialize Tortoise ORM
     try:
         if getattr(app.state, "testing", None):
-            await lifespan_test(app)
+            async with lifespan_test(app):
+                yield
         else:
             await Tortoise.init(TORTOISE_ORM)
             if settings.GENERATE_SCHEMAS:
@@ -85,11 +86,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
-    openapi_url=(
-        f"{settings.API_V1_STR}/openapi.json"
-        if settings.ENVIRONMENT != "production"
-        else None
-    ),
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
     generate_unique_id_function=custom_generate_unique_id,
