@@ -38,18 +38,19 @@ class Settings(BaseSettings):
     GENERATE_SCHEMAS: bool = True
 
     # Redis
-    REDIS_HOST: str = "127.0.0.1"
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: str | None = None
-    REDIS_DB: int = 0
-    RFQ_DUPLICATE_EXPIRY_HOURS: int = 24 * 7  # 1 week
+    REDIS_HOST: str | None = os.getenv("REDIS_HOST")
+    REDIS_PORT: str | None = os.getenv("REDIS_PORT")
+    REDIS_PASSWORD: str | None = os.getenv("REDIS_PASSWORD")
+    REDIS_DB: str | None = os.getenv("REDIS_DB")
+    REDIS_USE_SSL: str | None = os.getenv("REDIS_USE_SSL")
+    RFQ_DUPLICATE_EXPIRY_HOURS: int | None = 24 * 7  # 1 week
 
     # Postgres
     POSTGRES_HOST: str = "127.0.0.1"
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER")
+    POSTGRES_USER: str | None = os.getenv("POSTGRES_USER")
     POSTGRES_PASSWORD: str | None = os.getenv("POSTGRES_PASSWORD")
     POSTGRES_DATABASE: str | None = os.getenv("POSTGRES_DATABASE")
-    POSTGRES_PORT: int = 5432
+    POSTGRES_PORT: str | None = os.getenv("POSTGRES_PORT")
     POSTGRES_DATABASE_SCHEMA: str | None = None
 
 
