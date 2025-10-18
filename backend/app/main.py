@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
@@ -12,12 +15,14 @@ from starlette.staticfiles import StaticFiles
 from app.modules.routers import routers
 from app.core.config import settings
 from app.core.redis import get_redis_connection
-from app.scheduler import init_scheduler
 
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
 
 from app.core.db import TORTOISE_ORM, get_db_conf_test
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -26,61 +31,85 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 @asynccontextmanager
 async def lifespan_test(app: FastAPI):
+    # Use RegisterTortoise as context manager for test lifecycle
     async with RegisterTortoise(
         app=app,
         config=get_db_conf_test(),
         generate_schemas=True,
         _create_db=True,
     ):
-        # db connected
         yield
-        # app teardown
-    # db connections closed
-    await Tortoise._drop_databases()
+    # ensure test DB dropped after test lifecycle
+    try:
+        await Tortoise._drop_databases()
+    except Exception:
+        pass
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize scheduler
-    print("Initiating scheduler")
-    init_scheduler()
-
-    # Initialize Redis
+    # Redis connect (non-blocking; log failures and continue)
     try:
         redis_conn = get_redis_connection()
-        await redis_conn.ping()
         app.state.redis = redis_conn
-        print("Redis connection established")
+        logger.info("Redis connection established")
     except Exception as e:
-        print(f"Redis connection failed: {e}")
+        logger.exception(f"Redis connection failed: {e}")
 
-    # Initialize Tortoise ORM
+    # logger.info("Initiating scheduler")
+    # await init_scheduler()
+
     try:
         if getattr(app.state, "testing", None):
             async with lifespan_test(app):
                 yield
-        else:
+            # after test context manager exits we return
+            return
+
+        # initialize Tortoise only if not initialized already
+        if not getattr(Tortoise, "apps", None):
+            logger.debug("Tortoise starting..")
             await Tortoise.init(TORTOISE_ORM)
-            if settings.GENERATE_SCHEMAS:
+            logger.debug("Tortoise intialized")
+        else:
+            logger.debug("Tortoise already initialized")
+
+        # generate schemas with timeout to avoid indefinite hang
+        if settings.GENERATE_SCHEMAS:
+            timeout = getattr(settings, "GENERATE_SCHEMAS_TIMEOUT", 10)
+            try:
+                logger.info("Start generating schemas")
                 await Tortoise.generate_schemas()
+                logger.info("Tortoise schemas generated")
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Tortoise.generate_schemas() timed out after {timeout}s. Continuing without blocking startup."
+                )
+            except Exception:
+                logger.exception(
+                    "Tortoise.generate_schemas() failed but will not block startup"
+                )
 
-        print("Tortoise ORM connected")
+        logger.info("Tortoise ORM connected")
     except Exception as e:
-        print(f"Tortoise ORM init failed: {e}")
+        logger.exception(f"Tortoise ORM init failed: {e}")
 
+    # normal app runtime
     yield
 
-    # Close Redis
+    # teardown
     if hasattr(app.state, "redis"):
-        await app.state.redis.close()
-        print("Redis connection closed")
+        try:
+            await app.state.redis.close()
+            logger.info("Redis connection closed")
+        except Exception:
+            logger.exception("Error closing Redis connection")
 
-    # Close Tortoise ORM
     try:
         await Tortoise.close_connections()
-        print("Tortoise ORM connection closed")
+        logger.info("Tortoise ORM connection closed")
     except Exception as e:
-        print(f"Tortoise ORM shutdown failed: {e}")
+        logger.exception(f"Tortoise ORM shutdown failed: {e}")
 
 
 app = FastAPI(

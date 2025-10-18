@@ -6,9 +6,8 @@ from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from typing import Any, ParamSpec, TypeVar
 
-import redis.asyncio as redis
 from loguru import logger
-from redis.asyncio import Redis
+from redis.asyncio import Redis, from_url
 
 from app.core.config import settings
 
@@ -32,12 +31,12 @@ def json_dumps(obj: Any) -> str:
 
 def get_redis_connection() -> Redis:
     """Get an async Redis connection using settings"""
-    redis_url = "rediss://"
+    redis_url = "redis://"
     if settings.REDIS_PASSWORD:
         redis_url += f":{settings.REDIS_PASSWORD}@"
     redis_url += f"{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"
-
-    return redis.from_url(redis_url, decode_responses=True)
+    print(f"Connecting redis: {redis_url}")
+    return from_url(redis_url, decode_responses=True)
 
 
 def hash_dict(data: Any) -> str:
