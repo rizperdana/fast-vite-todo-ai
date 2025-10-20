@@ -1,12 +1,12 @@
 from typing import List
 from fastapi import APIRouter
 
-from app.modules.todo.schema import TodoPydantic
+from app.modules.todo.schema import todo_base_schema
 
 api = APIRouter()
 
 
-@api.get("/todo", response_model=List[TodoPydantic])
+@api.get("/todo", response_model=List[todo_base_schema])
 async def get_todos() -> dict:
     todos = []
     return {"data": todos}

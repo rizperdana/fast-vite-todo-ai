@@ -22,7 +22,7 @@ from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handle
 from app.core.db import TORTOISE_ORM, get_db_conf_test
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -31,7 +31,6 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 @asynccontextmanager
 async def lifespan_test(app: FastAPI):
-    # Use RegisterTortoise as context manager for test lifecycle
     async with RegisterTortoise(
         app=app,
         config=get_db_conf_test(),
@@ -39,7 +38,6 @@ async def lifespan_test(app: FastAPI):
         _create_db=True,
     ):
         yield
-    # ensure test DB dropped after test lifecycle
     try:
         await Tortoise._drop_databases()
     except Exception:
@@ -48,7 +46,6 @@ async def lifespan_test(app: FastAPI):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Redis connect (non-blocking; log failures and continue)
     try:
         redis_conn = get_redis_connection()
         app.state.redis = redis_conn
@@ -56,17 +53,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.exception(f"Redis connection failed: {e}")
 
-    # logger.info("Initiating scheduler")
-    # await init_scheduler()
-
     try:
         if getattr(app.state, "testing", None):
             async with lifespan_test(app):
                 yield
-            # after test context manager exits we return
             return
 
-        # initialize Tortoise only if not initialized already
         if not getattr(Tortoise, "apps", None):
             logger.debug("Tortoise starting..")
             await Tortoise.init(TORTOISE_ORM)
@@ -74,7 +66,6 @@ async def lifespan(app: FastAPI):
         else:
             logger.debug("Tortoise already initialized")
 
-        # generate schemas with timeout to avoid indefinite hang
         if settings.GENERATE_SCHEMAS:
             timeout = getattr(settings, "GENERATE_SCHEMAS_TIMEOUT", 10)
             try:
@@ -94,10 +85,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.exception(f"Tortoise ORM init failed: {e}")
 
-    # normal app runtime
     yield
 
-    # teardown
     if hasattr(app.state, "redis"):
         try:
             await app.state.redis.close()
@@ -123,6 +112,7 @@ app = FastAPI(
     exception_handlers={
         **tortoise_exception_handlers(),
     },
+    debug=settings.DEBUG,
 )
 
 add_pagination(app)
